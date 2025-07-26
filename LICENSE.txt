@@ -1,0 +1,3 @@
+Copyright (c) 2025 Yuri Pozdnyakov
+
+This software is provided for personal, academic, and non-commercial use only. Commercial use, redistribution, or incorporation into commercial products is strictly prohibited without prior written permission from the author.
