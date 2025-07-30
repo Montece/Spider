@@ -1,31 +1,31 @@
 ﻿using System.IO;
 using System.Text.Json;
 
-namespace Spider;
+namespace Spider.ConfigData;
 
 internal static class ConfigManager
 {
-    public static AppSettings Instance { get; private set; } = new();
+    public static Config Instance { get; private set; } = new();
 
-    private const string CONFIG_PATH = "Settings.json";
+    private const string PATH = "config.json";
 
     public static void Load()
     {
-        if (!File.Exists(CONFIG_PATH))
+        if (!File.Exists(PATH))
         {
             Instance = new();
             return;
         }
 
-        var json = File.ReadAllText(CONFIG_PATH);
+        var json = File.ReadAllText(PATH);
         
-        Instance = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+        Instance = JsonSerializer.Deserialize<Config>(json) ?? new Config();
     }
 
     public static void Save()
     {
         var json = JsonSerializer.Serialize(Instance, new JsonSerializerOptions { WriteIndented = true });
         
-        File.WriteAllText(CONFIG_PATH, json);
+        File.WriteAllText(PATH, json);
     }
 }

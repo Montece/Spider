@@ -1,9 +1,11 @@
-﻿using System.Windows;
-using Hardcodet.Wpf.TaskbarNotification;
+﻿using Hardcodet.Wpf.TaskbarNotification;
+using Spider.Core;
+using Spider.InstanceData;
+using System.Windows;
 
 namespace Spider;
 
-public partial class App : Application
+public partial class App
 {
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -11,19 +13,28 @@ public partial class App : Application
 
         try
         {
-            var trayIcon = (TaskbarIcon)FindResource("MyTrayIcon");
-            trayIcon.TrayLeftMouseDown += (s, ev) =>
+            var trayIcon = GetIcon();
+            trayIcon.TrayLeftMouseDown += (_, _) =>
             {
-                if (MainWindow.IsVisible)
+                if (MainWindow!.IsVisible)
+                {
                     MainWindow.Hide();
+                }
                 else
+                {
                     MainWindow.Show();
+                }
             };
         }
         catch (Exception ex)
         {
             MessageBox.Show("Ошибка иконки в трее: " + ex.Message);
         }
+    }
+
+    private TaskbarIcon GetIcon()
+    {
+        return (TaskbarIcon)(FindResource("MyTrayIcon") ?? throw new InvalidOperationException());
     }
 
     private void OpenSettings_Click(object sender, RoutedEventArgs e)
@@ -38,8 +49,11 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        var trayIcon = (TaskbarIcon)FindResource("MyTrayIcon");
+        var trayIcon = GetIcon();
         trayIcon.Dispose();
+
+        InstanceManager.Save();
+
         base.OnExit(e);
     }
 }

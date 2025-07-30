@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using Spider.ConfigData;
 
 namespace Spider;
 
@@ -26,8 +27,6 @@ public partial class SettingsWindow
         ConfigManager.Save();
 
         ApplySettings();
-
-        MessageBox.Show("Настройки сохранены!");
 
         Close();
     }

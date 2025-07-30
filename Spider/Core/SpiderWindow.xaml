@@ -11,8 +11,8 @@
         Background="Transparent"
         Topmost="True"
         AllowDrop="True"
+        ShowInTaskbar="False"
         Drop="Window_Drop"
-        DragEnter="Window_DragEnter"
-        ShowInTaskbar="False">
+        DragEnter="Window_DragEnter">
     <Canvas x:Name="SpiderCanvas" Width="100" Height="100" Background="Transparent"/>
 </Window>

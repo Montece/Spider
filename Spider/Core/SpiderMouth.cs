@@ -1,59 +1,85 @@
-﻿using System.Windows;
-using System.Windows.Threading;
+﻿using System.Windows.Threading;
 
 namespace Spider.Core;
 
-internal sealed class SpiderMouth
+internal sealed class SpiderMouth : IFrameUpdate
 {
-    private bool IsSpeaking { get; set; }
+    private bool IsTalking { get; set; }
 
-    private readonly SpiderCore _core;
+    private readonly SpiderLogic _logic;
+    private readonly object _speechWindowLock = new();
 
-    public SpiderMouth(SpiderCore core)
+    private SpeechWindow? _speechWindow;
+    private DispatcherTimer? _timer;
+
+    public SpiderMouth(SpiderLogic logic)
     {
-        _core = core;
+        _logic = logic;
     }
 
-    public void Speak(string text)
+    public void Say(string text)
     {
-        if (IsSpeaking)
+        if (IsTalking)
+        {
+            StopSaying();
+        }
+
+        StartSaying(text);
+    }
+
+    private void StartSaying(string text)
+    {
+        if (IsTalking)
         {
             return;
         }
 
-        IsSpeaking = true;
+        IsTalking = true;
 
-        var speech = new SpeechWindow();
-        speech.SetText(text);
-        speech.Show();
-
-        var timer1 = new DispatcherTimer
+        lock (_speechWindowLock)
         {
-            Interval = TimeSpan.FromMicroseconds(30)
-        };
+            _speechWindow = new();
+            _speechWindow.SetText(text);
+            _speechWindow.Show();
+        }
 
-        timer1.Tick += (_, _) =>
-        {
-            speech.Follow(_core.GetSpiderPosition());
-        };
-
-        timer1.Start();
-
-        var timer2 = new DispatcherTimer
+        _timer = new()
         {
             Interval = TimeSpan.FromSeconds(2)
         };
 
-        timer2.Tick += (_, _) =>
+        _timer.Tick += (_, _) =>
         {
-            timer1.Stop();
-            timer2.Stop();
-
-            speech.Close();
-
-            IsSpeaking = false;
+            StopSaying();
         };
 
-        timer2.Start();
+        _timer.Start();
+    }
+
+    private void StopSaying()
+    {
+        if (!IsTalking)
+        {
+            return;
+        }
+
+        _timer?.Stop();
+        _timer = null;
+
+        lock (_speechWindowLock)
+        {
+            _speechWindow?.Close();
+            _speechWindow = null;
+        }
+
+        IsTalking = false;
+    }
+
+    public void FrameUpdate()
+    {
+        lock (_speechWindowLock)
+        {
+            _speechWindow?.Follow(_logic.Position);
+        }
     }
 }

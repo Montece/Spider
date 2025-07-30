@@ -3,13 +3,13 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.Windows.Threading;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 namespace Spider.Core;
 
-internal sealed class SpiderView
+internal sealed class SpiderView : IFrameUpdate
 {
-    public event MouseButtonEventHandler OnBodyMouseLeftButtonDown;
+    public event MouseButtonEventHandler? OnBodyMouseLeftButtonDown;
 
     private const int LEG_COUNT = 8;
     private const double LEG_LENGTH = 20d;
@@ -38,12 +38,20 @@ internal sealed class SpiderView
         _window = window;
         _canvas = canvas;
 
-        DrawSpider();
+        CreateSpider();
     }
 
-    private void DrawSpider()
+    private void CreateSpider()
     {
-        // Лапки
+        CreateLegs();
+        CreateBody();
+        CreateEyes();
+
+        SetBodyPosition((_canvas.Width - _body.Width) / 2, (_canvas.Height - _body.Height) / 2);
+    }
+
+    private void CreateLegs()
+    {
         for (var i = 0; i < LEG_COUNT; i++)
         {
             var leg = new Line
@@ -51,11 +59,14 @@ internal sealed class SpiderView
                 Stroke = _legColor,
                 StrokeThickness = LEG_THICKNESS
             };
+
             _legs[i] = leg;
             _canvas.Children.Add(leg);
         }
+    }
 
-        // Тело
+    private void CreateBody()
+    {
         _body = new()
         {
             Width = BODY_RADIUS * 2,
@@ -67,14 +78,15 @@ internal sealed class SpiderView
         _canvas.Children.Add(_body);
         
         _body.MouseLeftButtonDown += (s, e) => OnBodyMouseLeftButtonDown?.Invoke(s, e);
+    }
 
-        // Глаза
+    private void CreateEyes()
+    {
         _eyeLeft = CreateEye();
         _eyeRight = CreateEye();
+
         _canvas.Children.Add(_eyeLeft);
         _canvas.Children.Add(_eyeRight);
-
-        SetBodyPosition((_canvas.Width - _body.Width) / 2, (_canvas.Height - _body.Height) / 2);
     }
 
     private static Ellipse CreateEye()
@@ -117,7 +129,7 @@ internal sealed class SpiderView
         Canvas.SetTop(_eyeRight, center.Y + EYE_OFFSET_Y - EYE_SIZE / 2);
     }
 
-    public void AnimateLegs()
+    private void AnimateLegs()
     {
         _time += 0.1;
 
@@ -137,28 +149,51 @@ internal sealed class SpiderView
             _legs[i].X2 = x2;
             _legs[i].Y2 = y2;
         }
-    }
+    }   
 
     public void UpdateEyes(int hunger)
     {
-        Brush color = hunger switch
+        RunOnUIThread(() =>
         {
-            < 30 => Brushes.LightGreen,
-            < 70 => Brushes.Yellow,
-            _ => Brushes.IndianRed
-        };
-
-        _eyeLeft.Fill = _eyeRight.Fill = color;
+            _eyeLeft.Fill = _eyeRight.Fill = GetHungerColor(hunger);
+        });
     }
 
-    public void SetSpiderPosition(Point newPosition)
+    private static Brush GetHungerColor(int hunger)
+    {
+        byte r, g;
+
+        if (hunger <= 50)
+        {
+            // От зеленого (#00FF00) к желтому (#FFFF00)
+            var t = hunger / 50d; // t = 0..1
+            r = (byte)(255 * t); // от 0 до 255
+            g = 255;
+        }
+        else
+        {
+            // От желтого (#FFFF00) к красному (#FF0000)
+            var t = (hunger - 50) / 50d; // t = 0..1
+            r = 255;
+            g = (byte)(255 * (1 - t)); // от 255 до 0
+        }
+
+        return new SolidColorBrush(Color.FromRgb(r, g, 0));
+    }
+
+    private void RunOnUIThread(Action method)
+    {
+        _window.Dispatcher.Invoke(method);
+    } 
+
+    public void SetPosition(Point newPosition)
     {
         _window.Left = newPosition.X;
         _window.Top = newPosition.Y;
     }
 
-    public Point GetSpiderPosition()
+    public void FrameUpdate()
     {
-        return new(_window.Left, _window.Top);
+        AnimateLegs();
     }
 }

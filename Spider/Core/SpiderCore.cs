@@ -4,42 +4,50 @@ using System.Windows.Input;
 
 namespace Spider.Core;
 
-internal sealed class SpiderCore
+public sealed class SpiderCore : IFrameUpdate
 {
-    public event MouseButtonEventHandler OnSpiderClick;
+    public event MouseButtonEventHandler? OnSpiderClick;
 
     private readonly SpiderLogic _logic;
     private readonly SpiderView _view;
-    private readonly SpiderMouth _mouth;
 
-    public SpiderCore(Window window, Canvas canvas)
+    public SpiderCore(Window window, Canvas canvas, Point startPosition)
     {
         _view = new(window, canvas);
-        _logic = new();
-        _mouth = new(this);
+        _logic = new(window, startPosition.X, startPosition.Y);
+
+        _view.UpdateEyes(_logic.Hunger);
 
         _view.OnBodyMouseLeftButtonDown += (sender, args) => OnSpiderClick?.Invoke(sender, args);
-    }
-
-    public Point GetSpiderPosition() => _view.GetSpiderPosition();
-
-    public void SetSpiderPosition(Point newPosition) => _view.SetSpiderPosition(newPosition);
-
-    public void Speak(string text) => _mouth.Speak(text);
-
-    public void UpdateEyes(int hunger) => _view.UpdateEyes(hunger);
-
-    public void AnimateLegs() => _view.AnimateLegs();
-
-    public void Hungry(int amount)
-    {
-        _logic.AddHunger(amount);
-        _view.UpdateEyes(_logic.Hunger);
+        
+        _logic.OnHungerChanged += hunger => _view.UpdateEyes(hunger);
     }
 
     public void Feed(int amount)
     {
         _logic.RemoveHunger(amount);
-        _view.UpdateEyes(_logic.Hunger);
+    }
+
+    public void Say(string text)
+    {
+        _logic.Say(text);
+    }
+
+    public void FrameUpdate()
+    {
+        _logic.FrameUpdate();
+        _view.FrameUpdate();
+
+        _view.SetPosition(_logic.Position);
+    }
+
+    public void Fear(TimeSpan duration)
+    {
+        _logic.Fear(duration);
+    }
+
+    public Point GetPosition()
+    {
+        return _logic.Position;
     }
 }
